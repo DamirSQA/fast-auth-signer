@@ -11,6 +11,10 @@ import RefLogoSvg from '../../Images/ref-logo';
 import { useAuthState } from '../../lib/useAuthState';
 import { ModalSignWrapper } from './Sign.styles';
 import { Button } from '../../lib/Button';
+import { useSelector } from 'react-redux';
+import { selectNearTokenFiatValueUSD } from '../../Redux/Slices/TokenFiatValues/index';
+import { actions as tokenFiatValueActions } from '../../Redux/Slices/TokenFiatValues';
+
 
 const deserializeTransactionsFromString = (transactionsString: string) =>
   transactionsString
@@ -23,7 +27,6 @@ const deserializeTransactionsFromString = (transactionsString: string) =>
         buffer
       )
     );
-
 interface TransactionDetails {
   signerId: string;
   receiverId: string;
@@ -45,6 +48,8 @@ export const calculateGasLimit = (actions) =>
     .toString();
 
 function Sign() {
+const nearTokenFiatValueUSD = useSelector(selectNearTokenFiatValueUSD);
+const { fetchTokenFiatValues, getTokenWhiteList } = tokenFiatValueActions;
   const [searchParams] = useSearchParams();
   const [callbackUrl] = React.useState(searchParams.get('callbackUrl'));
   const [transactionDetails, setTransactionDetails] = React.useState<TransactionDetails>({
@@ -85,14 +90,24 @@ function Sign() {
         .toString(),
       fees: {
         transactionFees: '',
-        gasLimit: calculateGasLimit(allActions),
+        // gasLimit: calculateGasLimit(allActions),
+        gasLimit: "320000000000000000000",
         gasPrice: '',
       },
       transactions: deserializedTransactions,
       actions: allActions,
     });
+
+
   }, []);
 
+// @ts-ignore
+  React.useEffect(() => {
+    fetchTokenFiatValues()
+    getTokenWhiteList()
+  }, [])
+
+ 
   const onConfirm = () => {
     if (authenticated) {
       (window as any).fastAuthController.signAndSendDelegateAction({
@@ -163,7 +178,10 @@ function Sign() {
             <h4>Network fees</h4>
             <TableContent
               leftSide="Fee limit"
-              rightSide={`${transactionDetails.fees.gasLimit} Tgas`}
+              // rightSide={`${transactionDetails.fees.gasLimit} Tgas`}
+               rightSide={`${utils.format.formatNearAmount(
+              transactionDetails.fees.gasLimit, 5
+            )} NEAR`}
             />
             <TableContent
               leftSide="Estimated Fees"
@@ -178,9 +196,9 @@ function Sign() {
               <TableContent
                 key={i}
                 leftSide={transactionDetails.receiverId}
-                hasFunctionCall
+                hasFunctionCall               
                 isFunctionCallOpen
-                rightSide={action.functionCall.methodName}
+                rightSide={action.enum}
                 functionDesc={<pre>{JSON.stringify(action, null, 2)}</pre>}
                 openLink={`add links ${i}`}
               />
